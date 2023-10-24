@@ -1,25 +1,74 @@
-use ggez::{ContextBuilder, graphics, event::EventHandler, Context, event};
+use ggez::{ContextBuilder, graphics, event::EventHandler, Context, event, conf};
 use rand::Rng;
 
-const GRID_SIZE: (i16, i16) = (10, 10);
-const GRID_CELL_SIZE: (i16, i16) = (12, 12);
+const GRID_SIZE: Size2i = Size2i::new(16, 16);
+const GRID_CELL_SIZE: Size2i = Size2i::new(48, 48);
 
-const WINDOW_SIZE: (f32, f32) = (
-    GRID_SIZE.0 as f32 * GRID_CELL_SIZE.0 as f32,
-    GRID_SIZE.1 as f32 * GRID_CELL_SIZE.1 as f32,
+const WINDOW_SIZE: Size2f = Size2f::new(
+    GRID_SIZE.width as f32 * GRID_CELL_SIZE.width as f32,
+    GRID_SIZE.height as f32 * GRID_CELL_SIZE.height as f32,
 );
+
+trait RandomGen<T> {
+    fn gen_range(min: T, max_x: T, max_y: T) -> Self;
+}
+
+struct Size2f {
+    width: f32,
+    height: f32,
+}
+
+impl Size2f {
+    const fn new(width: f32, height: f32) -> Size2f {
+        Size2f { width, height }
+    }
+}
+
+impl RandomGen<f32> for Size2f {
+    fn gen_range(min: f32, max_x: f32, max_y: f32) -> Self {
+        let mut rng = rand::thread_rng();
+        Size2f {
+            width: rng.gen_range(min..max_x),
+            height: rng.gen_range(min..max_y),
+        }
+    }
+}
+
+struct Size2i {
+    width: i16,
+    height: i16,
+}
+
+impl RandomGen<i16> for Size2i {
+    fn gen_range(min: i16, max_x: i16, max_y: i16) -> Self {
+        let mut rng = rand::thread_rng();
+        Size2i {
+            width: rng.gen_range(min..max_x),
+            height: rng.gen_range(min..max_y),
+        }
+    }
+}
+
+impl Size2i {
+    const fn new(width: i16, height: i16) -> Size2i {
+        Size2i { width, height }
+    }
+}
 
 const TARGET_FPS: u32 = 12;
 fn main() {
     // Make a context
     let (mut ctx, event_loop) = ContextBuilder::new("game_name", "ISC")
+        .window_mode(conf::WindowMode {
+            width: WINDOW_SIZE.width,
+            height: WINDOW_SIZE.height,
+            ..Default::default()
+        })
         .build()
         .expect("Error creating ggez context");
 
 
-    // Event handler instance
-    // Inside your main or game loop
-    let mut game_state = GameState::new(Grid::new(GRID_SIZE.0 as u32, GRID_SIZE.1 as u32));
+    let mut game_state = GameState::new(Grid::new(GRID_SIZE.width as u32, GRID_SIZE.height as u32));
     game_state.randomized(50);  // Randomize 50 cells
     // For wrapping around coordinates
     let pos = GridPosition::new(15, 15);
@@ -38,21 +87,16 @@ impl GameState {
         GameState {  grid }
     }
         fn randomized(&mut self, limit: usize) {
-            let mut rng = rand::thread_rng();
-
-            for _ in 0..limit {
-                let x = rng.gen_range(0..GRID_SIZE.0);
-                let y = rng.gen_range(0..GRID_SIZE.1);
-                let index = (y as usize * GRID_SIZE.0 as usize) + x as usize;
-
+            let mut count = 0;
+            while count < limit {
+                let rand_pos = Size2i::gen_range(0, GRID_SIZE.width, GRID_SIZE.height);
+                let x = rand_pos.width;
+                let y = rand_pos.height;
+                let index = (y as usize * GRID_SIZE.width as usize) + x as usize;
                 // Check if the cell is already initialized
                 if self.grid.cells.get(index).is_none() {
                     self.grid.cells.push(Cell::new(GridPosition::new(x, y)));
-                } else {
-                    // If the cell is already initialized, check if it's active, and if not, make it active
-                    if !self.grid.cells[index].active {
-                        self.grid.cells[index].active = true;
-                    }
+                    count += 1;
                 }
 
             }
@@ -86,11 +130,10 @@ impl GridPosition {
     }
 
     fn wrap_around(&self) -> GridPosition {
-        let x = (self.x + GRID_SIZE.0) % GRID_SIZE.0;
-        let y = (self.y + GRID_SIZE.1) % GRID_SIZE.1;
+        let x = (self.x + GRID_SIZE.width) % GRID_SIZE.width;
+        let y = (self.y + GRID_SIZE.height) % GRID_SIZE.height;
         GridPosition { x, y }
     }
-    // TODO: Make this work
 }
 
 // Implement the `From` trait, to easily convert between
@@ -101,10 +144,10 @@ impl GridPosition {
 impl From<GridPosition> for graphics::Rect {
     fn from(pos: GridPosition) -> graphics::Rect {
         graphics::Rect::new_i32(
-            pos.x as i32 * GRID_CELL_SIZE.0 as i32,
-            pos.y as i32 * GRID_CELL_SIZE.1 as i32,
-            GRID_CELL_SIZE.0 as i32,
-            GRID_CELL_SIZE.1 as i32,
+            pos.x as i32 * GRID_CELL_SIZE.width as i32,
+            pos.y as i32 * GRID_CELL_SIZE.height as i32,
+            GRID_CELL_SIZE.width as i32,
+            GRID_CELL_SIZE.height as i32,
         )
     }
 }
@@ -118,24 +161,19 @@ impl From<(i16, i16)> for GridPosition {
 
 struct Cell {
     position: GridPosition,
-    active: bool,
 }
 
 impl Cell {
     fn new(position: GridPosition) -> Cell {
         Cell {
             position,
-            active: true,
         }
     }
 
     fn draw(&self, canvas: &mut graphics::Canvas) {
         let rect: graphics::Rect = self.position.into();
-        let color = if self.active {
-            graphics::Color::WHITE
-        } else {
-            graphics::Color::BLACK
-        };
+        let color = graphics::Color::WHITE;
+
         canvas.draw(
             &graphics::Quad,
             graphics::DrawParam::new()
@@ -159,24 +197,21 @@ impl Grid {
         }
     }
 
-    pub fn draw(&self, canvas: &mut graphics::Canvas) {
+    pub fn draw(&mut self, canvas: &mut graphics::Canvas) {
         for cell in self.cells.iter() {
             cell.draw(canvas);
         }
     }
 
     pub fn pretty_print(&self) {
-        println!("GRID SIZE: ({}, {})", GRID_SIZE.0, GRID_SIZE.1);
+        println!("GRID SIZE: ({}, {})", GRID_SIZE.width, GRID_SIZE.height);
         println!("CELL count: {}", self.cells.len());
-        for y in 0..GRID_SIZE.1 {
-            for x in 0..GRID_SIZE.0 {
-                let index = (y as usize * GRID_SIZE.0 as usize) + x as usize;
+        for y in 0..GRID_SIZE.height {
+            for x in 0..GRID_SIZE.width {
+                let index = (y as usize * GRID_SIZE.width as usize) + x as usize;
                 if let Some(cell) = self.cells.get(index) {
-                    if cell.active {
-                        print!("O"); // "O" represents an active cell
-                    } else {
-                        print!("."); // "." represents an inactive cell
-                    }
+                    print!("{}", cell.position.x);
+                    print!("{}", cell.position.y);
                 } else {
                     print!(" "); // " " represents a cell that's out of bounds or not initialized
                 }
