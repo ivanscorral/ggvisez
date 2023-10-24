@@ -1,5 +1,7 @@
+use components::{Size2i, Size2f, RandomGen};
 use ggez::{ContextBuilder, graphics, event::EventHandler, Context, event, conf};
-use rand::Rng;
+
+mod components;
 
 const GRID_SIZE: Size2i = Size2i::new(16, 16);
 const GRID_CELL_SIZE: Size2i = Size2i::new(48, 48);
@@ -9,51 +11,7 @@ const WINDOW_SIZE: Size2f = Size2f::new(
     GRID_SIZE.height as f32 * GRID_CELL_SIZE.height as f32,
 );
 
-trait RandomGen<T> {
-    fn gen_range(min: T, max_x: T, max_y: T) -> Self;
-}
 
-struct Size2f {
-    width: f32,
-    height: f32,
-}
-
-impl Size2f {
-    const fn new(width: f32, height: f32) -> Size2f {
-        Size2f { width, height }
-    }
-}
-
-impl RandomGen<f32> for Size2f {
-    fn gen_range(min: f32, max_x: f32, max_y: f32) -> Self {
-        let mut rng = rand::thread_rng();
-        Size2f {
-            width: rng.gen_range(min..max_x),
-            height: rng.gen_range(min..max_y),
-        }
-    }
-}
-
-struct Size2i {
-    width: i16,
-    height: i16,
-}
-
-impl RandomGen<i16> for Size2i {
-    fn gen_range(min: i16, max_x: i16, max_y: i16) -> Self {
-        let mut rng = rand::thread_rng();
-        Size2i {
-            width: rng.gen_range(min..max_x),
-            height: rng.gen_range(min..max_y),
-        }
-    }
-}
-
-impl Size2i {
-    const fn new(width: i16, height: i16) -> Size2i {
-        Size2i { width, height }
-    }
-}
 
 const TARGET_FPS: u32 = 12;
 fn main() {
