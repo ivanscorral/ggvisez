@@ -1,7 +1,8 @@
-use components::{Size2i, Size2f, RandomGen};
+use components::{math::Size2i, math::Size2f, visuals::Point};
 use ggez::{ContextBuilder, graphics, event::EventHandler, Context, event, conf};
 
 mod components;
+mod data_structures;
 
 const GRID_SIZE: Size2i = Size2i::new(16, 16);
 const GRID_CELL_SIZE: Size2i = Size2i::new(48, 48);
@@ -29,8 +30,6 @@ fn main() {
     let mut game_state = GameState::new(Grid::new(GRID_SIZE.width as u32, GRID_SIZE.height as u32));
     game_state.randomized(50);  // Randomize 50 cells
     // For wrapping around coordinates
-    let pos = GridPosition::new(15, 15);
-    let wrapped_pos = pos.wrap_around();
     game_state.grid.pretty_print();
     event::run(ctx, event_loop, game_state);
 }
@@ -53,7 +52,7 @@ impl GameState {
                 let index = (y as usize * GRID_SIZE.width as usize) + x as usize;
                 // Check if the cell is already initialized
                 if self.grid.cells.get(index).is_none() {
-                    self.grid.cells.push(Cell::new(GridPosition::new(x, y)));
+                    self.grid.cells.push(Cell::new(Point::new(x, y)));
                     count += 1;
                 }
 
@@ -76,53 +75,14 @@ impl GameState {
     }
 
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-struct GridPosition {
-    x: i16,
-    y: i16,
-}
 
-impl GridPosition {
-    fn new(x: i16, y: i16) -> GridPosition {
-        GridPosition { x, y }
-    }
-
-    fn wrap_around(&self) -> GridPosition {
-        let x = (self.x + GRID_SIZE.width) % GRID_SIZE.width;
-        let y = (self.y + GRID_SIZE.height) % GRID_SIZE.height;
-        GridPosition { x, y }
-    }
-}
-
-// Implement the `From` trait, to easily convert between
-// a `GridPosition` and a ggez `graphics::Rect`, to fill
-// the cell's grid.
-// To obtain a cell's Rect representation, call `.into()` on
-// the `GridPosition` instance.
-impl From<GridPosition> for graphics::Rect {
-    fn from(pos: GridPosition) -> graphics::Rect {
-        graphics::Rect::new_i32(
-            pos.x as i32 * GRID_CELL_SIZE.width as i32,
-            pos.y as i32 * GRID_CELL_SIZE.height as i32,
-            GRID_CELL_SIZE.width as i32,
-            GRID_CELL_SIZE.height as i32,
-        )
-    }
-}
-
-// Implement the `From` trait to easily convert (i16, i16) to `GridPosition`.
-impl From<(i16, i16)> for GridPosition {
-    fn from(pos: (i16, i16)) -> Self {
-        GridPosition { x: pos.0, y: pos.1 }
-    }
-}
 
 struct Cell {
-    position: GridPosition,
+    position: Point,
 }
 
 impl Cell {
-    fn new(position: GridPosition) -> Cell {
+    fn new(position: Point) -> Cell {
         Cell {
             position,
         }
@@ -139,7 +99,21 @@ impl Cell {
             .color(color),)
     }
 }
-
+// Implement the `From` trait, to easily convert between
+// a `GridPosition` and a ggez `graphics::Rect`, to fill
+// the cell's grid.
+// To obtain a cell's Rect representation, call `.into()` on
+// the `GridPosition` instance.
+impl From<Cell> for graphics::Rect {
+    fn from(pos: Cell) -> graphics::Rect {
+        graphics::Rect::new_i32(
+            pos.position.x as i32 * GRID_CELL_SIZE.width,
+            pos.position.y as i32 * GRID_CELL_SIZE.height as i32,
+            GRID_CELL_SIZE.width as i32,
+            GRID_CELL_SIZE.height as i32,
+        )
+    }
+}
 struct Grid {
     width: u32,
     height: u32,
