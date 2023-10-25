@@ -4,7 +4,7 @@ use ggez::{ContextBuilder, graphics, event::EventHandler, Context, event, conf};
 mod components;
 mod data_structures;
 
-const GRID_SIZE: Size2i = Size2i::new(16, 16);
+const GRID_SIZE: Size2i = Size2i::new(32, 32);
 const GRID_CELL_SIZE: Size2i = Size2i::new(48, 48);
 
 const WINDOW_SIZE: Size2f = Size2f::new(
@@ -76,7 +76,7 @@ impl GameState {
 
 
 
-
+#[derive(Clone, Copy)]
 struct Cell {
     position: Point,
     size: Size2i,
@@ -91,12 +91,8 @@ impl Cell {
     }
 
     fn draw(&self, canvas: &mut graphics::Canvas) {
-        let rect: graphics::Rect = graphics::Rect::new_i32(
-            self.position.x as i32,
-            self.position.y as i32,
-            self.size.width as i32,
-            self.size.height as i32,
-        );
+        println!("Drawing cell at ({}, {})", self.position.x, self.position.y);
+        let rect: graphics::Rect = self.clone().into();
         let color = graphics::Color::WHITE;
 
         canvas.draw(
@@ -106,18 +102,15 @@ impl Cell {
             .color(color),)
     }
 }
-// Implement the `From` trait, to easily convert between
-// a `GridPosition` and a ggez `graphics::Rect`, to fill
-// the cell's grid.
-// To obtain a cell's Rect representation, call `.into()` on
-// the `GridPosition` instance.
+
+
 impl From<Cell> for graphics::Rect {
-    fn from(pos: Cell) -> graphics::Rect {
+    fn from(cell: Cell) -> graphics::Rect {
         graphics::Rect::new_i32(
-            pos.position.x as i32 * GRID_CELL_SIZE.width as i32,
-            pos.position.y as i32 * GRID_CELL_SIZE.height as i32,
-            GRID_CELL_SIZE.width as i32,
-            GRID_CELL_SIZE.height as i32,
+            cell.position.x as i32 * cell.size.width as i32,
+            cell.position.y as i32 * cell.size.height as i32,
+            cell.size.width as i32,
+            cell.size.height as i32,
         )
     }
 }

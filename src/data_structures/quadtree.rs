@@ -10,10 +10,10 @@ pub struct Region {
 }
 
 pub struct RegionSubset {
-    pub nw: Region,
     pub ne: Region,
-    pub sw: Region,
+    pub nw: Region,
     pub se: Region,
+    pub sw: Region,
 }
 
 impl RegionSubset {
@@ -24,6 +24,12 @@ impl RegionSubset {
     */
 }
 
+impl From<Region> for PRQuadtree {
+    fn from(region: Region) -> Self {
+        PRQuadtree::new(region.top_left, region.size, 4)
+    }
+}
+
 // Helper method to generate a region subset from a region
 impl From<Region> for RegionSubset {
     fn from(region: Region) -> Self {
@@ -31,7 +37,7 @@ impl From<Region> for RegionSubset {
         RegionSubset {
             nw: Region {
                 top_left: Point::new(region.top_left.x, region.top_left.y),
-                size: size
+                size
             },
             ne: Region {
                 top_left: Point::new(region.top_left.x + region.size.width / 2, region.top_left.y),
@@ -69,8 +75,8 @@ struct PRQuadtree {
     pub capacity: usize,
     pub ne: Option<Box<PRQuadtree>>,
     pub nw: Option<Box<PRQuadtree>>,
-    pub sw: Option<Box<PRQuadtree>>,
     pub se: Option<Box<PRQuadtree>>,
+    pub sw: Option<Box<PRQuadtree>>,
 }
 
 impl PRQuadtree {
@@ -81,8 +87,8 @@ impl PRQuadtree {
             region: Region { top_left, size },
             ne: None,
             nw: None,
-            sw: None,
             se: None,
+            sw: None,
         }
     }
 
@@ -109,7 +115,7 @@ impl PRQuadtree {
 
 
     pub fn is_leaf(&self) -> bool {
-        self.ne.is_none() && self.nw.is_none() && self.sw.is_none() && self.se.is_none()
+        todo!()
     }
 
     pub fn subdivide(&mut self) {
@@ -120,54 +126,17 @@ impl PRQuadtree {
                 self.capacity
             );
         }
-        // Create temporary subregions, then add the non-empty ones
-        let subregions = RegionSubset::from(self.region);
-        let mut temp_ne = PRQuadtree::new(
-            subregions.ne.top_left,
-            subregions.ne.size,
-            self.capacity,
-        );
-        let mut temp_nw = PRQuadtree::new(
-            subregions.nw.top_left,
-            subregions.nw.size,
-            self.capacity,
-        );
-        let mut temp_sw = PRQuadtree::new(
-            subregions.sw.top_left,
-            subregions.sw.size,
-            self.capacity,
-        );
-        let mut temp_se = PRQuadtree::new(
-            subregions.se.top_left,
-            subregions.se.size,
-            self.capacity,
-        );
 
-        // Redistribute the points
-        for node in self.points.drain(..) {
-            if temp_ne.region.contains(&node.point) {
-                temp_ne.insert(node);
-            } else if temp_nw.region.contains(&node.point) {
-                temp_nw.insert(node);
-            } else if temp_sw.region.contains(&node.point) {
-                temp_sw.insert(node);
-            } else if temp_se.region.contains(&node.point) {
-                temp_se.insert(node);
-            } else {
-                panic!("Point is not in any subregion.");
-            }
-        }
-
-        // Add only the non-empty subregions
-
-        self.ne = Some(Box::new(temp_ne));
-        self.nw = Some(Box::new(temp_nw));
-        self.sw = Some(Box::new(temp_sw));
-        self.se = Some(Box::new(temp_se));
-
-        // Clear the points
-        self.points.clear();
+       todo!()
     }
+
+    fn redistribute(&mut self) {
+        if !self.is_leaf() {
+            self.subdivide()
+        }
+    }
+
+
 }
         // Filter out empty subregions
 
