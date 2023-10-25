@@ -14,7 +14,7 @@ impl Point {
 
 
 
-// Implement the `From` trait to easily convert (i16, i16) to `GridPosition`.
+// Implement the `From` trait to easily convert (i16, i16) to `Point`.
 impl From<(i16, i16)> for Point {
     fn from(pos: (i16, i16)) -> Self {
         Point { x: pos.0, y: pos.1 }

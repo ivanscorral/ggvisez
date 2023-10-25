@@ -6,6 +6,8 @@ pub trait RandomGen<T> {
     fn gen_range(min: T, max_x: T, max_y: T) -> Self;
 }
 
+
+#[derive(Clone, Copy, Debug)]
 pub struct Size2f {
     pub width: f32,
     pub height: f32,
@@ -36,7 +38,7 @@ impl RandomGen<f32> for Size2f {
         }
     }
 }
-
+#[derive(Clone, Copy, Debug)]
 pub struct Size2i {
     pub width: i16,
     pub height: i16,

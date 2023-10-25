@@ -2,6 +2,8 @@
 
 use crate::components::{math::Size2i, visuals::Point};
 
+
+#[derive(Debug, Clone, Copy)]
 pub struct Region {
     pub top_left: Point,
     pub size: Size2i,
@@ -15,9 +17,11 @@ pub struct RegionSubset {
 }
 
 impl RegionSubset {
+    /*
     pub fn array(&self) -> [Region; 4] {
         [self.nw, self.ne, self.sw, self.se]
     }
+    */
 }
 
 // Helper method to generate a region subset from a region
@@ -27,7 +31,7 @@ impl From<Region> for RegionSubset {
         RegionSubset {
             nw: Region {
                 top_left: Point::new(region.top_left.x, region.top_left.y),
-                size
+                size: size
             },
             ne: Region {
                 top_left: Point::new(region.top_left.x + region.size.width / 2, region.top_left.y),

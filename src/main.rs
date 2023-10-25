@@ -1,4 +1,4 @@
-use components::{math::Size2i, math::Size2f, visuals::Point};
+use components::{math::Size2i, math::Size2f, visuals::Point, math::RandomGen};
 use ggez::{ContextBuilder, graphics, event::EventHandler, Context, event, conf};
 
 mod components;
@@ -79,17 +79,24 @@ impl GameState {
 
 struct Cell {
     position: Point,
+    size: Size2i,
 }
 
 impl Cell {
     fn new(position: Point) -> Cell {
         Cell {
             position,
+            size: GRID_CELL_SIZE,
         }
     }
 
     fn draw(&self, canvas: &mut graphics::Canvas) {
-        let rect: graphics::Rect = self.position.into();
+        let rect: graphics::Rect = graphics::Rect::new_i32(
+            self.position.x as i32,
+            self.position.y as i32,
+            self.size.width as i32,
+            self.size.height as i32,
+        );
         let color = graphics::Color::WHITE;
 
         canvas.draw(
@@ -107,7 +114,7 @@ impl Cell {
 impl From<Cell> for graphics::Rect {
     fn from(pos: Cell) -> graphics::Rect {
         graphics::Rect::new_i32(
-            pos.position.x as i32 * GRID_CELL_SIZE.width,
+            pos.position.x as i32 * GRID_CELL_SIZE.width as i32,
             pos.position.y as i32 * GRID_CELL_SIZE.height as i32,
             GRID_CELL_SIZE.width as i32,
             GRID_CELL_SIZE.height as i32,
