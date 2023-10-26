@@ -1,5 +1,8 @@
 use components::{math::Size2i, math::Size2f, visuals::Point, math::RandomGen};
+use data_structures::quadtree::{Quadtree, RegionSubset};
 use ggez::{ContextBuilder, graphics, event::EventHandler, Context, event, conf};
+
+use crate::data_structures::quadtree::Region;
 
 mod components;
 mod data_structures;
@@ -27,38 +30,54 @@ fn main() {
         .expect("Error creating ggez context");
 
 
-    let mut game_state = GameState::new(Grid::new(GRID_SIZE.width as u32, GRID_SIZE.height as u32));
-    game_state.randomized(50);  // Randomize 50 cells
-    // For wrapping around coordinates
-    game_state.grid.pretty_print();
-    event::run(ctx, event_loop, game_state);
+    let qt = Quadtree::new(Point::new(0, 0), GRID_SIZE);
+
+
+    let mut game_state = GameState::new(qt);
+    game_state.randomized(100);
+
+    let mut qt = game_state.point_quadtree;
+    // Query the points in each quadrant of the grid (GRID_SIZE / 2 sized)
+    let quadrant_size = GRID_SIZE / 2;
+    let game_quadrants = RegionSubset {
+        ne: Region { top_left: (0 as u32, 0 as u32).into(), size: quadrant_size },
+        nw: Region { top_left: (0, quadrant_size.height as u32).into(), size: quadrant_size },
+        se: Region { top_left: (quadrant_size.width as u32, 0).into(), size: quadrant_size },
+        sw: Region { top_left: (quadrant_size.width as u32, quadrant_size.height as u32).into(), size: quadrant_size },
+    };
+
+    let ne_points = qt.query_region(&&Region { top_left: Point::new(16, 0), size: Size2i::new(3 , 3) });
+
+
+    println!("Points within 3x3 grid of (16, 0):");
+
+    for point in ne_points {
+        println!("Point: ({}, {})", point.x, point.y);
+    }
+    //event::run(ctx, event_loop, game_state);
+
 }
 
 
 struct GameState {
-    grid: Grid,
+    point_quadtree: Quadtree,
 }
 
 impl GameState {
-    fn new(grid: Grid) -> GameState {
-        GameState {  grid }
+    fn new(point_quadtree: Quadtree) -> GameState {
+        GameState {  point_quadtree }
     }
         fn randomized(&mut self, limit: usize) {
             let mut count = 0;
             while count < limit {
-                let rand_pos = Size2i::gen_range(0, GRID_SIZE.width, GRID_SIZE.height);
-                let x = rand_pos.width;
-                let y = rand_pos.height;
-                let index = (y as usize * GRID_SIZE.width as usize) + x as usize;
-                // Check if the cell is already initialized
-                if self.grid.cells.get(index).is_none() {
-                    self.grid.cells.push(Cell::new(Point::new(x, y)));
-                    count += 1;
-                }
-
-            }
+                let rand_point = Point::rand(GRID_SIZE.width as u32, GRID_SIZE.height as u32);
+                self.point_quadtree.insert_point(rand_point);
+                count += 1;
         }
+        println!("Randomized {} points", self.point_quadtree.query_region(&Region{ top_left: Point::new(0, 0), size: GRID_SIZE}).len());
     }
+
+}
 
     impl EventHandler<ggez::GameError> for GameState {
         fn update(&mut self, _ctx: &mut Context) -> ggez::GameResult {
@@ -67,7 +86,11 @@ impl GameState {
 
         fn draw(&mut self, ctx: &mut Context) -> ggez::GameResult {
             let mut canvas = graphics::Canvas::from_frame(ctx, graphics::Color::BLACK);
-            self.grid.draw(&mut canvas);
+            let points = self.point_quadtree.query_region(&self.point_quadtree.region);
+            points.iter().for_each(|point| {
+                let cell = Cell::new(*point);
+                cell.draw(&mut canvas);
+            });
             canvas.finish(ctx)?;
             Ok(())
         }

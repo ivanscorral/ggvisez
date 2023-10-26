@@ -7,7 +7,7 @@ pub trait RandomGen<T> {
 }
 
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Size2f {
     pub width: f32,
     pub height: f32,
@@ -38,7 +38,7 @@ impl RandomGen<f32> for Size2f {
         }
     }
 }
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Size2i {
     pub width: i16,
     pub height: i16,
