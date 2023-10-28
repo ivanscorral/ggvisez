@@ -1,38 +1,30 @@
 use crate::{
     components::visuals::Point,
-    io::files::{EncodedFile, FileHandlerBuilder},
+    io::files::EncodedFile,
 };
 
 use super::Decodable;
 pub struct Decoder<T: Decodable> {
-    input: Option<T>,
+    input: T,
     cached_data: Option<Vec<Point>>,
 }
 
 impl<T: Decodable> Decoder<T> {
     pub fn new(input: T) -> Self {
         Decoder {
-            input: Some(input),
+            input,
             cached_data: None,
         }
     }
 
     pub fn decode(&mut self) -> Option<Vec<Point>> {
-        if let Some(cached_data) = &self.cached_data {
-            return Some(cached_data.clone());
+        if let Some(cached) = &self.cached_data {
+            return Some(cached.clone());
         }
 
-        if let Some(input) = &self.input {
-            let decoded_data = input.decode();
-            self.cached_data = Some(decoded_data.clone());
-            return Some(decoded_data);
-        }
-
-        None
-    }
-
-    pub fn is_cached(&self) -> bool {
-        self.cached_data.is_some()
+        let data = self.input.decode();
+        self.cached_data = Some(data.clone());
+        Some(data)
     }
 }
 
@@ -71,19 +63,11 @@ impl Decodable for Vec<u8> {
 
 impl Decodable for EncodedFile {
     fn decode(&self) -> Vec<Point> {
-        // Create a file handler
-        let file_handler = FileHandlerBuilder::new()
-            .with_path(self.path.clone())
-            .build();
-        // Get the file's bytes, handing possible errors
-        let bytes = match file_handler.read_bytes() {
-            Ok(bytes) => bytes,
-            Err(err) => {
-                panic!("Error reading file: {}", err);
-            }
-        };
-        // Decode the bytes
-        let decoded_data = bytes.decode();
-        decoded_data
+        let bytes = self.bytes();
+        if bytes.len() == 0 {
+            println!("Error reading file bytes");
+            return vec![];
+        }
+        bytes.decode()
     }
 }

@@ -2,8 +2,7 @@
 use components::{math::Size2f, math::Size2i, visuals::Point};
 use data_structures::quadtree::Quadtree;
 use ggez::{conf, event, event::EventHandler, graphics, Context, ContextBuilder};
-
-use crate::{data_structures::quadtree::Region, encoding::{encoder::Encoder, Decodable}, io::files::EncodedFile};
+use crate::{data_structures::quadtree::Region, encoding::{encoder::Encoder, Decodable, decoder::Decoder}, io::files::EncodedFile};
 
 mod components;
 mod data_structures;
@@ -30,9 +29,18 @@ fn main() {
         .expect("Error creating ggez context");
 
     let mut game_state = GameState::new(&Quadtree::new(Point::new(0, 0), GRID_SIZE));
-    game_state.randomized(1000);
+    game_state.randomized(1024);
+    let encoder = Encoder::new(GRID_SIZE, game_state.point_quadtree.clone());
+    let encoded_file = match encoder.to_file(&"test.bin".to_string()) {
+        Ok(file) => file,
+        Err(err) => panic!("{}", err),
+    };
 
-    event::run(ctx, event_loop, game_state);
+    let mut decoder = Decoder::new(encoded_file.bytes());
+    let decoded_data = decoder.decode().unwrap();
+    println!("Read {} points from file", decoded_data.len());
+
+    // event::run(ctx, event_loop, game_state);
 }
 
 struct GameState {
@@ -43,6 +51,11 @@ impl GameState {
     fn new(point_quadtree: &Quadtree) -> GameState {
         GameState { point_quadtree: point_quadtree.clone() }
     }
+
+    fn encode(&self) -> Vec<u8> {
+        Encoder::new(GRID_SIZE, self.point_quadtree.clone()).encode()
+    }
+
     fn randomized(&mut self, limit: usize) {
         let mut count = 0;
         while count < limit {

@@ -1,4 +1,4 @@
-use crate::{io::files::{FileHandler, FileHandlerBuilder}, components::visuals::Point};
+use crate::{io::files::FileHandler, components::visuals::Point};
 
 use super::decoder::Decoder;
 
@@ -9,13 +9,13 @@ pub struct FileDecoder {
 
 impl FileDecoder {
     // Constructor: Only requires input path
-    pub fn new(input_path: &str) -> Self {
+    pub fn new(input_path: &String) -> Self {
         FileDecoder {
-            file_handler: FileHandlerBuilder::new().with_path(input_path.to_string()).build(),
+            file_handler: FileHandler::new(input_path),
             decoder: None,
         }
     }
-    pub fn decode_file(&mut self) -> std::io::Result<Vec<Point>> {
+    pub fn decode_file(&self) -> std::io::Result<Vec<Point>> {
         // Read bytes from the file
         let bytes = self.file_handler.read_bytes()?;
 
@@ -26,9 +26,4 @@ impl FileDecoder {
         decoder.decode().ok_or(std::io::Error::new(std::io::ErrorKind::Other, "Decoding error"))
     }
 
-    pub fn write_decoded_to_file(&self, output_path: &str, decoded_content: &[u8]) -> std::io::Result<()> {
-        // Instead of mutating the existing file_handler, create a new FileHandler with the desired path
-        let output_handler = FileHandlerBuilder::new().with_path(output_path.to_string()).build();
-        output_handler.write_bytes(decoded_content.to_vec())
-    }
 }
