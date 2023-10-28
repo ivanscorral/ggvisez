@@ -1,21 +1,22 @@
-use components::{math::Size2i, math::Size2f, visuals::Point, math::RandomGen};
-use data_structures::quadtree::{Quadtree, RegionSubset};
-use ggez::{ContextBuilder, graphics, event::EventHandler, Context, event, conf};
 
-use crate::data_structures::quadtree::Region;
+use components::{math::Size2f, math::Size2i, visuals::Point};
+use data_structures::quadtree::Quadtree;
+use ggez::{conf, event, event::EventHandler, graphics, Context, ContextBuilder};
+
+use crate::{data_structures::quadtree::Region, encoding::{encoder::EncoderBuilder,Decodable}, io::files::EncodedFile};
 
 mod components;
 mod data_structures;
+mod encoding;
+mod io;
 
-const GRID_SIZE: Size2i = Size2i::new(32, 32);
-const GRID_CELL_SIZE: Size2i = Size2i::new(48, 48);
+const GRID_SIZE: Size2i = Size2i::new(128, 64);
+const GRID_CELL_SIZE: Size2i = Size2i::new(8, 8);
 
 const WINDOW_SIZE: Size2f = Size2f::new(
     GRID_SIZE.width as f32 * GRID_CELL_SIZE.width as f32,
     GRID_SIZE.height as f32 * GRID_CELL_SIZE.height as f32,
 );
-
-
 
 const TARGET_FPS: u32 = 12;
 fn main() {
@@ -29,35 +30,34 @@ fn main() {
         .build()
         .expect("Error creating ggez context");
 
-
     let qt = Quadtree::new(Point::new(0, 0), GRID_SIZE);
 
-
-    let mut game_state = GameState::new(qt);
-    game_state.randomized(100);
-
-    let mut qt = game_state.point_quadtree;
-    // Query the points in each quadrant of the grid (GRID_SIZE / 2 sized)
-    let quadrant_size = GRID_SIZE / 2;
-    let game_quadrants = RegionSubset {
-        ne: Region { top_left: (0 as u32, 0 as u32).into(), size: quadrant_size },
-        nw: Region { top_left: (0, quadrant_size.height as u32).into(), size: quadrant_size },
-        se: Region { top_left: (quadrant_size.width as u32, 0).into(), size: quadrant_size },
-        sw: Region { top_left: (quadrant_size.width as u32, quadrant_size.height as u32).into(), size: quadrant_size },
-    };
-
-    let ne_points = qt.query_region(&&Region { top_left: Point::new(16, 0), size: Size2i::new(3 , 3) });
+    let mut game_state: GameState = GameState::new(qt);
+    game_state.randomized(235);
+    let qt = game_state.point_quadtree;
+    let all_points = qt.query_region(&&Region {
+        top_left: Point::new(0, 0),
+        size: GRID_SIZE,
+    });
 
 
-    println!("Points within 3x3 grid of (16, 0):");
-
-    for point in ne_points {
-        println!("Point: ({}, {})", point.x, point.y);
+    let encoded_file = EncodedFile::new("test.bin");
+    let bytes = encoded_file.decode();
+    for &point in &bytes {
+        println!("{:?}", point);
     }
+    println!("\n, size = {}", bytes.len() );
+    let encoder = EncoderBuilder::new().sized(GRID_SIZE).with_data(qt).build();
+
+    println!("Encoded quadtree:");
+    let bytes = encoder.encode();
+    for &byte in &bytes {
+        print!("{:X}", byte);
+    }
+    println!("\n, size = {}", bytes.len() );
+    encoder.to_file("test.bin");
     //event::run(ctx, event_loop, game_state);
-
 }
-
 
 struct GameState {
     point_quadtree: Quadtree,
@@ -65,39 +65,45 @@ struct GameState {
 
 impl GameState {
     fn new(point_quadtree: Quadtree) -> GameState {
-        GameState {  point_quadtree }
+        GameState { point_quadtree }
     }
-        fn randomized(&mut self, limit: usize) {
-            let mut count = 0;
-            while count < limit {
-                let rand_point = Point::rand(GRID_SIZE.width as u32, GRID_SIZE.height as u32);
-                self.point_quadtree.insert_point(rand_point);
-                count += 1;
+    fn randomized(&mut self, limit: usize) {
+        let mut count = 0;
+        while count < limit {
+            let rand_point = Point::rand(GRID_SIZE.width as u32, GRID_SIZE.height as u32);
+            self.point_quadtree.insert_point(rand_point);
+            count += 1;
         }
-        println!("Randomized {} points", self.point_quadtree.query_region(&Region{ top_left: Point::new(0, 0), size: GRID_SIZE}).len());
+        println!(
+            "Randomized {} points",
+            self.point_quadtree
+                .query_region(&Region {
+                    top_left: Point::new(0, 0),
+                    size: GRID_SIZE
+                })
+                .len()
+        );
     }
-
 }
 
-    impl EventHandler<ggez::GameError> for GameState {
-        fn update(&mut self, _ctx: &mut Context) -> ggez::GameResult {
-            Ok(())
-        }
-
-        fn draw(&mut self, ctx: &mut Context) -> ggez::GameResult {
-            let mut canvas = graphics::Canvas::from_frame(ctx, graphics::Color::BLACK);
-            let points = self.point_quadtree.query_region(&self.point_quadtree.region);
-            points.iter().for_each(|point| {
-                let cell = Cell::new(*point);
-                cell.draw(&mut canvas);
-            });
-            canvas.finish(ctx)?;
-            Ok(())
-        }
-
+impl EventHandler<ggez::GameError> for GameState {
+    fn update(&mut self, _ctx: &mut Context) -> ggez::GameResult {
+        Ok(())
     }
 
-
+    fn draw(&mut self, ctx: &mut Context) -> ggez::GameResult {
+        let mut canvas = graphics::Canvas::from_frame(ctx, graphics::Color::BLACK);
+        let points = self
+            .point_quadtree
+            .query_region(&self.point_quadtree.region);
+        points.iter().for_each(|point| {
+            let cell = Cell::new(*point);
+            cell.draw(&mut canvas);
+        });
+        canvas.finish(ctx)?;
+        Ok(())
+    }
+}
 
 #[derive(Clone, Copy)]
 struct Cell {
@@ -120,12 +126,10 @@ impl Cell {
 
         canvas.draw(
             &graphics::Quad,
-            graphics::DrawParam::new()
-            .dest_rect(rect)
-            .color(color),)
+            graphics::DrawParam::new().dest_rect(rect).color(color),
+        )
     }
 }
-
 
 impl From<Cell> for graphics::Rect {
     fn from(cell: Cell) -> graphics::Rect {
@@ -174,8 +178,4 @@ impl Grid {
             println!(); // Move to the next line for the next row
         }
     }
-
-
-
-
 }

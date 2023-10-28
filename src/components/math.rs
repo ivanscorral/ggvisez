@@ -43,7 +43,18 @@ pub struct Size2i {
     pub width: i16,
     pub height: i16,
 }
+impl Size2i {
+    pub const fn new(width: i16, height: i16) -> Size2i {
+        Size2i { width, height }
+    }
 
+    pub fn from_bytes(bytes: &[u8]) -> Size2i {
+        Size2i {
+            width: i16::from_be_bytes([bytes[0], bytes[1]]),
+            height: i16::from_be_bytes([bytes[2], bytes[3]]),
+        }
+    }
+}
 impl Div<i16> for Size2i {
     type Output = Size2i;
     fn div(self, rhs: i16) -> Self::Output {
@@ -64,8 +75,4 @@ impl RandomGen<i16> for Size2i {
     }
 }
 
-impl Size2i {
-    pub const fn new(width: i16, height: i16) -> Size2i {
-        Size2i { width, height }
-    }
-}
+

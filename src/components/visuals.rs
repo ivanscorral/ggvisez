@@ -1,7 +1,7 @@
 
 use rand::Rng;
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub struct Point {
     pub x: u32,
     pub y: u32,

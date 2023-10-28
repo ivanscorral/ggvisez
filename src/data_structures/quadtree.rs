@@ -48,22 +48,6 @@ impl Region {
             && point.x < self.top_left.x + self.size.width as u32
             && point.y < self.top_left.y + self.size.height as u32
     }
-    pub fn is_subset(&self, other: &Region) -> bool {
-        if self == other {
-            return true; // The regions are identical
-        }
-
-        let contains_top_left = self.contains(&other.top_left);
-
-        let bottom_right = Point {
-            x: other.top_left.x + other.size.width as u32 - 1,
-            y: other.top_left.y + other.size.height as u32 - 1,
-        };
-
-        let contains_bottom_right = self.contains(&bottom_right);
-
-        contains_top_left && contains_bottom_right
-    }
 
     pub fn intersects(&self, other: &Region) -> bool {
         let self_bottom_right = Point {
@@ -122,6 +106,9 @@ impl Quadtree {
 
     pub fn insert_point(&mut self, point: Point) {
 
+        if self.points.contains(&point) {
+            return;
+        }
         if !self.region.contains(&point) {
             return;
         }
@@ -155,19 +142,6 @@ impl Quadtree {
         }
     }
 
-    pub fn clear(&mut self) {
-        self.points.clear();
-        self.subregions.clear();
-    }
-
-    pub fn size(&self) -> usize {
-        let mut size = self.points.len();
-        for subregion in &self.subregions {
-            size += subregion.size();
-        }
-        size
-    }
-
     fn split_into_subregions(&mut self) {
         let subregions = RegionSubset::from(self.region);
         self.subregions = subregions.to_array().iter().map(|region| Quadtree::from(*region)).collect();
@@ -192,6 +166,20 @@ impl Quadtree {
             .flat_map(|subregion| subregion.collect())
             .chain(self.points.clone())
             .collect()
+    }
+
+    pub fn to_grid(&self) -> Vec<Vec<u8>> {
+        let mut grid = vec![vec![0u8; self.region.size.width as usize]; self.region.size.height as usize];
+
+        let all_points = self.collect();
+
+        for point in all_points {
+            if self.region.contains(&point) {
+                grid[point.y as usize][point.x as usize] = 1;
+            }
+        }
+
+        grid
     }
 
     /* balancing pseudocode
