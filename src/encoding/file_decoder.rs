@@ -1,6 +1,6 @@
-use crate::{io::files::{FileHandler, FileHandlerContext, FileHandlerBuilder}, components::visuals::Point};
+use crate::{io::files::{FileHandler, FileHandlerBuilder}, components::visuals::Point};
 
-use super::decoder::{Decoder};
+use super::decoder::Decoder;
 
 pub struct FileDecoder {
     file_handler: FileHandler,

@@ -7,14 +7,22 @@ pub struct EncoderContext {
     pub size: Size2i,
 }
 
-pub struct Encoder {
-    pub context: EncoderContext,
-    data: Box<dyn Encodable>,
+
+pub struct Encoder<T: Encodable> {
+    pub size: Size2i,
+    data: T,
 }
 
-impl Encoder {
+impl<T: Encodable> Encoder<T> {
+    pub fn new(size: Size2i, data: T) -> Encoder<T> {
+        Encoder {
+            size,
+            data,
+        }
+    }
+
     pub fn encode(&self) -> Vec<u8> {
-        self.data.encode(&self.context)
+        self.data.encode(&self.size)
     }
 
     pub fn to_file(&self, path: &str) -> std::io::Result<()> {
@@ -29,49 +37,17 @@ impl Encoder {
 
 }
 
-pub struct EncoderBuilder {
-    size: Option<Size2i>,
-    data: Option<Box<dyn Encodable>>,
-}
-
-impl EncoderBuilder {
-    pub fn new() -> EncoderBuilder {
-        EncoderBuilder {
-            size: None,
-            data: None,
-        }
-    }
-
-    pub fn sized(mut self, size: Size2i) -> Self {
-        self.size = Some(size);
-        self
-    }
-
-    pub fn with_data<T: 'static + Encodable>(mut self, data: T) -> Self {
-        self.data = Some(Box::new(data));
-        self
-    }
-
-    pub fn build(self) -> Encoder {
-        Encoder {
-            context: EncoderContext {
-                size: self.size.expect("Must provide a size for the encoder"),
-            },
-            data: self.data.expect("Must provide data for the encoder"),
-        }
-    }
-}
 
 
 impl Encodable for Vec<Vec<u8>> {
 
-    fn encode(&self, context: &EncoderContext) -> Vec<u8> {
+    fn encode(&self, size: &Size2i) -> Vec<u8> {
         // The first two bytes represent the width, and the next two bytes represent the height.
         let mut k = Vec::new();
 
         // Pack the height and width into the first two bytes
-        k.extend_from_slice(&(context.size.width as u16).to_be_bytes());
-        k.extend_from_slice(&(context.size.height as u16).to_be_bytes());
+        k.extend_from_slice(&(size.width as u16).to_be_bytes());
+        k.extend_from_slice(&(size.height as u16).to_be_bytes());
 
         let mut accumulator = 0u16;
         let mut bit_position = 0;
@@ -101,8 +77,8 @@ impl Encodable for Vec<Vec<u8>> {
 }
 
 impl Encodable for Quadtree {
-    fn encode(&self, context: &EncoderContext) -> Vec<u8> {
-        self.to_grid().encode(context)
+    fn encode(&self, size: &Size2i) -> Vec<u8> {
+        self.to_grid().encode(size)
     }
 }
 

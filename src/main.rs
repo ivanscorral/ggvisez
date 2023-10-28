@@ -1,9 +1,9 @@
 
 use components::{math::Size2f, math::Size2i, visuals::Point};
 use data_structures::quadtree::Quadtree;
-use ggez::{conf, event, event::EventHandler, graphics, Context, ContextBuilder};
+use ggez::{conf, event::EventHandler, graphics, Context, ContextBuilder};
 
-use crate::{data_structures::quadtree::Region, encoding::{encoder::EncoderBuilder,Decodable}, io::files::EncodedFile};
+use crate::{data_structures::quadtree::Region, encoding::{encoder::Encoder, Decodable}, io::files::EncodedFile};
 
 mod components;
 mod data_structures;
@@ -18,7 +18,6 @@ const WINDOW_SIZE: Size2f = Size2f::new(
     GRID_SIZE.height as f32 * GRID_CELL_SIZE.height as f32,
 );
 
-const TARGET_FPS: u32 = 12;
 fn main() {
     // Make a context
     let (mut ctx, event_loop) = ContextBuilder::new("game_name", "ISC")
@@ -35,11 +34,6 @@ fn main() {
     let mut game_state: GameState = GameState::new(qt);
     game_state.randomized(235);
     let qt = game_state.point_quadtree;
-    let all_points = qt.query_region(&&Region {
-        top_left: Point::new(0, 0),
-        size: GRID_SIZE,
-    });
-
 
     let encoded_file = EncodedFile::new("test.bin");
     let bytes = encoded_file.decode();
@@ -47,7 +41,7 @@ fn main() {
         println!("{:?}", point);
     }
     println!("\n, size = {}", bytes.len() );
-    let encoder = EncoderBuilder::new().sized(GRID_SIZE).with_data(qt).build();
+    let encoder = Encoder::new(GRID_SIZE, qt);
 
     println!("Encoded quadtree:");
     let bytes = encoder.encode();
@@ -55,7 +49,10 @@ fn main() {
         print!("{:X}", byte);
     }
     println!("\n, size = {}", bytes.len() );
-    encoder.to_file("test.bin");
+    match encoder.to_file("test.bin") {
+        Ok(_) => println!("File written successfully"),
+        Err(err) => println!("Error writing file: {}", err),
+    }
     //event::run(ctx, event_loop, game_state);
 }
 

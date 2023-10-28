@@ -1,12 +1,11 @@
-use crate::components::visuals::Point;
+use crate::components::{visuals::Point, math::Size2i};
 
-use self::encoder::EncoderContext;
 
 pub mod encoder;
 pub mod decoder;
 pub mod file_decoder;
 pub trait Encodable {
-    fn encode(&self, context: &EncoderContext) -> Vec<u8>;
+    fn encode(&self, size: &Size2i) -> Vec<u8>;
 }
 
 pub trait Decodable {
