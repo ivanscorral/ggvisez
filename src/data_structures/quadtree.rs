@@ -68,6 +68,7 @@ impl Region {
 
 }
 
+#[derive(Debug, Clone)]
 pub struct Quadtree {
     pub points: Vec<Point>,
     pub region: Region,
