@@ -30,12 +30,16 @@ fn main() {
 
     let mut game_state = GameState::new(&Quadtree::new(Point::new(0, 0), GRID_SIZE));
     game_state.randomized(124);
-    let encoder = Encoder::new(GRID_SIZE, game_state.point_quadtree.clone());
-    let encoded_file = match encoder.to_file(&"test.bin".to_string()) {
-        Ok(file) => file,
-        Err(err) => panic!("{}", err),
+    let quadtree = game_state.point_quadtree.clone();
+    let bytes = encoding::encode(&quadtree, &GRID_SIZE);
+    let rle_compressed = encoding::compress(&bytes, encoding::Compressor::Rle);
+    println!("Encoded size: {}, compressed size: {}", bytes.len(), rle_compressed.len());
+    let encoded_file = match io::write_encoded_file("encoded.txt", &rle_compressed) {
+        Ok(encoded_file) => encoded_file,
+        Err(e) => {
+            panic!("{}", e);
+        }
     };
-
     let encoded_data = encoded_file.bytes();
     let rle_encoder = RleEncoder::new(&encoded_data);
     let compressed_data = rle_encoder.encode();

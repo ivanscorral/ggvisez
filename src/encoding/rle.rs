@@ -1,10 +1,7 @@
-use super::Encodable;
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RleEncoder {
     input: Vec<u8>,
 }
-
 
 impl RleEncoder {
     pub fn new(input: &Vec<u8>) -> Self {
@@ -46,8 +43,26 @@ pub struct RleValue {
     count: u8,
 }
 
+impl From<RleValue> for (u8, u8) {
+    fn from(value: RleValue) -> Self {
+        (value.value, value.count)
+    }
+}
+
 impl RleValue {
     pub fn to_string(&self) -> String {
         format!("{}{}", self.count, self.value)
     }
+}
+
+pub fn encode(data: &Vec<u8>) -> Vec<u8> {
+    // Create a RleEncoder
+    let encoder = RleEncoder::new(data);
+    // Encode the data
+    let mut compressed_data = Vec::new();
+    for value in encoder.encode() {
+        compressed_data.push(value.value);
+        compressed_data.push(value.count);
+    }
+    compressed_data
 }
