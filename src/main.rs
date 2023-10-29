@@ -2,7 +2,7 @@
 use components::{math::Size2f, math::Size2i, visuals::Point};
 use data_structures::quadtree::Quadtree;
 use ggez::{conf, event, event::EventHandler, graphics, Context, ContextBuilder};
-use crate::{data_structures::quadtree::Region, encoding::{encoder::Encoder, decoder::Decoder}};
+use crate::{data_structures::quadtree::Region, encoding::{encoder::Encoder, decoder::Decoder, rle::RleEncoder}};
 
 mod components;
 mod data_structures;
@@ -29,16 +29,26 @@ fn main() {
         .expect("Error creating ggez context");
 
     let mut game_state = GameState::new(&Quadtree::new(Point::new(0, 0), GRID_SIZE));
-    game_state.randomized(1024);
+    game_state.randomized(124);
     let encoder = Encoder::new(GRID_SIZE, game_state.point_quadtree.clone());
     let encoded_file = match encoder.to_file(&"test.bin".to_string()) {
         Ok(file) => file,
         Err(err) => panic!("{}", err),
     };
 
-    let mut decoder = Decoder::new(encoded_file.bytes());
-    let decoded_data = decoder.decode().unwrap();
-    println!("Read {} points from file", decoded_data.len());
+    let encoded_data = encoded_file.bytes();
+    let rle_encoder = RleEncoder::new(&encoded_data);
+    let compressed_data = rle_encoder.encode();
+    let compressed_string = compressed_data
+        .iter()
+        .map(|val| val.to_string())
+        .collect::<Vec<String>>()
+        .join("");
+    // Transform
+    println!("{}", compressed_string);
+
+    let compression_ratio = encoded_data.len() as f32 / compressed_data.len() as f32;
+    println!("Compression ratio: {}", compression_ratio);
 
     // event::run(ctx, event_loop, game_state);
 }
