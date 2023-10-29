@@ -2,7 +2,7 @@
 use components::{math::Size2f, math::Size2i, visuals::Point};
 use data_structures::quadtree::Quadtree;
 use ggez::{conf, event, event::EventHandler, graphics, Context, ContextBuilder};
-use crate::{data_structures::quadtree::Region, encoding::{encoder::Encoder, Decodable, decoder::Decoder}, io::files::EncodedFile};
+use crate::{data_structures::quadtree::Region, encoding::{encoder::Encoder, decoder::Decoder}};
 
 mod components;
 mod data_structures;

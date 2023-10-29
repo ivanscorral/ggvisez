@@ -6,42 +6,8 @@ pub struct Region {
     pub size: Size2i,
 }
 
-pub struct RegionSubset {
-    pub ne: Region,
-    pub nw: Region,
-    pub se: Region,
-    pub sw: Region,
-}
-
-impl RegionSubset {
-    pub fn to_array(&self) -> [Region; 4] {
-        [self.nw, self.ne, self.sw, self.se]
-    }
-}
-
-impl From<Region> for Quadtree {
-    fn from(region: Region) -> Self {
-        Quadtree::new(region.top_left, region.size)
-    }
-}
-
-impl From<Region> for RegionSubset {
-    fn from(region: Region) -> Self {
-        let half_size = Size2i::new(region.size.width / 2, region.size.height / 2);
-
-        // Round up if region.size is odd
-        let incremented_half_size = Size2i::new((region.size.width + 1) / 2, (region.size.height + 1) / 2);
-
-        RegionSubset {
-            nw: Region { top_left: region.top_left, size: half_size },
-            ne: Region { top_left: Point::new(region.top_left.x + half_size.width as u32, region.top_left.y), size: incremented_half_size },
-            sw: Region { top_left: Point::new(region.top_left.x, region.top_left.y + half_size.height as u32), size: incremented_half_size },
-            se: Region { top_left: Point::new(region.top_left.x + half_size.width as u32, region.top_left.y + half_size.height as u32), size: half_size },
-        }
-    }
-}
-
 impl Region {
+    // Checks if the region contains the given point
     pub fn contains(&self, point: &Point) -> bool {
         point.x >= self.top_left.x
             && point.y >= self.top_left.y
@@ -49,6 +15,7 @@ impl Region {
             && point.y < self.top_left.y + self.size.height as u32
     }
 
+    // Checks if two regions intersect
     pub fn intersects(&self, other: &Region) -> bool {
         let self_bottom_right = Point {
             x: self.top_left.x + self.size.width as u32 - 1,
@@ -68,6 +35,37 @@ impl Region {
 
 }
 
+// A subset of regions corresponding to another's quadrants: NW, NE, SW, SE
+pub struct RegionSubset {
+    pub ne: Region,
+    pub nw: Region,
+    pub se: Region,
+    pub sw: Region,
+}
+
+impl RegionSubset {
+    pub fn to_array(&self) -> [Region; 4] {
+        [self.nw, self.ne, self.sw, self.se]
+    }
+}
+
+impl From<Region> for RegionSubset {
+    fn from(region: Region) -> Self {
+        let half_size = Size2i::new(region.size.width / 2, region.size.height / 2);
+
+        // Round up if region.size is odd
+        let incremented_half_size = Size2i::new((region.size.width + 1) / 2, (region.size.height + 1) / 2);
+
+        RegionSubset {
+            nw: Region { top_left: region.top_left, size: half_size },
+            ne: Region { top_left: Point::new(region.top_left.x + half_size.width as u32, region.top_left.y), size: incremented_half_size },
+            sw: Region { top_left: Point::new(region.top_left.x, region.top_left.y + half_size.height as u32), size: incremented_half_size },
+            se: Region { top_left: Point::new(region.top_left.x + half_size.width as u32, region.top_left.y + half_size.height as u32), size: half_size },
+        }
+    }
+}
+
+// Represents the Quadtree, containing points within a region, and, potentially, subregions
 #[derive(Debug, Clone)]
 pub struct Quadtree {
     pub points: Vec<Point>,
@@ -160,7 +158,7 @@ impl Quadtree {
         });
     }
 
-    // TODO: Implement balancing and small node merging (when a node's childrens' sum of points is less than 4)
+    // TODO: Implement balancing and small node merging (when a node's children' sum of points is less than 4)
 
     fn collect(&self) -> Vec<Point> {
         self.subregions.iter()
@@ -221,5 +219,10 @@ impl Quadtree {
         for point in points {
             self.insert_point(point);
         }
+    }
+}
+impl From<Region> for Quadtree {
+    fn from(region: Region) -> Self {
+        Quadtree::new(region.top_left, region.size)
     }
 }
